@@ -1,0 +1,55 @@
+{
+  "speedGió": {
+    "type": "slider",
+    "value": 2,
+    "min": 0,
+    "max": 10,
+    "step": 0.5,
+    "text": "Tốc độ gió"
+  },
+  "huongGio": {
+    "type": "slider",
+    "value": 45,
+    "min": 0,
+    "max": 360,
+    "step": 1,
+    "text": "Hướng gió (Độ)"
+  },
+  "tocDoLaRoi": {
+    "type": "slider",
+    "value": 3,
+    "min": 1,
+    "max": 10,
+    "step": 1,
+    "text": "Tốc độ lá rơi"
+  },
+  "cheDoThoiGian": {
+    "type": "dropdown",
+    "value": 0,
+    "items": ["Theo Hệ Thống (Sáng/Tối)", "Sáng", "Trưa", "Chiều", "Tối"],
+    "text": "Chế độ thời gian"
+  },
+  "textTrenBang": {
+    "type": "textbox",
+    "value": "Tiểu Bạch Quả",
+    "text": "Văn bản trên bảng"
+  },
+  "amLuongChuong": {
+    "type": "slider",
+    "value": 50,
+    "min": 0,
+    "max": 100,
+    "step": 5,
+    "text": "Âm lượng chuông gió (%)"
+  },
+  "dongBoTheoNhac": {
+    "type": "checkbox",
+    "value": true,
+    "text": "Tự động điều chỉnh theo nhạc"
+  },
+  "mauSacHoa": {
+    "type": "color",
+    "value": "#9370DB",
+    "text": "Phối màu hoa tử đằng"
+  }
+}
