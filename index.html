@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Màn Hình Động Chuông Gió</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #050510;
+            font-family: sans-serif;
+        }
+        #bg-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: url('https://images.unsplash.com/photo-1518837695005-2083093ee35b?q=80&w=1920') no-repeat center center; /* Thay link ảnh của em vào đây */
+            background-size: cover;
+            transition: filter 1s ease, background 1s ease;
+            z-index: 1;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+        /* Bảng tên mini treo tương tác */
+        #mini-board {
+            position: absolute;
+            top: 35%;
+            left: 45%;
+            transform-origin: top center;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            color: #fff;
+            font-weight: bold;
+            border-radius: 4px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 3;
+            white-space: nowrap;
+            transition: transform 0.1s linear;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="bg-container"></div>
+    <div id="mini-board">Tiểu Bạch Quả</div>
+    <canvas id="effectCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('effectCanvas');
+        const ctx = canvas.getContext('2d');
+        const board = document.getElementById('mini-board');
+        const bgContainer = document.getElementById('bg-container');
+
+        // Cấu hình mặc định (Sẽ bị ghi đè bởi Lively Properties)
+        let config = {
+            speedGio: 2,
+            huongGio: 45,
+            tocDoLaRoi: 3,
+            cheDoThoiGian: 0,
+            textTrenBang: "Tiểu Bạch Quả",
+            amLuongChuong: 50,
+            dongBoTheoNhac: true,
+            mauSacHoa: "#9370DB"
+        };
+
+        let audioIntensity = 0;
+        let angle = 0; 
+        let particles = [];
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Lắng nghe cài đặt thay đổi từ ứng dụng Lively Wallpaper
+        function livelyPropertyListener(name, val) {
+            config[name] = val;
+            if (name === 'textTrenBang') {
+                board.innerText = val;
+            }
+            if (name === 'cheDoThoiGian') {
+                capNhatAnhSang();
+            }
+        }
+
+        // Đồng bộ âm thanh từ Lively Wallpaper
+        function livelyAudioListener(audioArray) {
+            if (!config.dongBoTheoNhac) {
+                audioIntensity = 0;
+                return;
+            }
+            // Lấy trung bình cộng biên độ âm thanh tần số thấp/trung
+            let sum = 0;
+            for (let i = 0; i < 32; i++) {
+                sum += audioArray[i];
+            }
+            audioIntensity = sum / 32 * 5; // Khuếch đại biên độ đầu vào
+        }
+
+        // Xử lý bộ lọc thời gian sáng trưa chiều tối
+        function capNhatAnhSang() {
+            let filterStyle = "";
+            let mode = parseInt(config.cheDoThoiGian);
+            
+            if (mode === 0) { // Tự động theo hệ thống
+                const hour = new Date().getHours();
+                if (hour >= 6 && hour < 11) mode = 1;      // Sáng
+                else if (hour >= 11 && hour < 15) mode = 2; // Trưa
+                else if (hour >= 15 && hour < 18) mode = 3; // Chiều
+                else mode = 4;                             // Tối
+            }
+
+            switch(mode) {
+                case 1: filterStyle = "brightness(1) contrast(1)"; break; // Sáng
+                case 2: filterStyle = "brightness(1.1) contrast(1.05) saturate(1.1)"; break; // Trưa
+                case 3: filterStyle = "brightness(0.8) sepia(0.3) hue-rotate(-10deg)"; break; // Chiều
+                case 4: filterStyle = "brightness(0.5) contrast(1.1) saturate(0.8) hue-rotate(10deg)"; break; // Tối
+            }
+            bgContainer.style.filter = filterStyle;
+        }
+
+        // Khởi tạo các hạt cánh hoa rơi
+        class Petal {
+            constructor() {
+                this.reset();
+                this.y = Math.random() * canvas.height;
+            }
+            reset() {
+                this.x = Math.random() * canvas.width - (canvas.width * 0.2);
+                this.y = -20;
+                this.size = Math.random() * 6 + 4;
+                this.speedY = (Math.random() * 1 + 1) * (config.tocDoLaRoi / 3);
+                this.speedX = (Math.random() * 2 + 1) * (config.speedGio / 2);
+                this.density = Math.random() * 20;
+                this.rotation = Math.random() * 360;
+                this.rotationSpeed = Math.random() * 2 - 1;
+            }
+            update() {
+                let dynamicWind = config.speedGio + (audioIntensity * 2);
+                this.y += this.speedY + (audioIntensity * 0.5);
+                this.x += Math.sin(this.density) + (dynamicWind * 0.5);
+                this.density += 0.02;
+                this.rotation += this.rotationSpeed;
+
+                if (this.y > canvas.height || this.x > canvas.width) {
+                    this.reset();
+                }
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation * Math.PI / 180);
+                ctx.fillStyle = config.mauSacHoa;
+                ctx.beginPath();
+                // Vẽ hình cánh hoa hình oval đơn giản
+                ctx.ellipse(0, 0, this.size, this.size / 2, 0, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Tạo danh sách hạt ban đầu
+        for (let i = 0; i < 40; i++) {
+            particles.push(new Petal());
+        }
+
+        // Vòng lặp hoạt họa chính (Animation Loop)
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Cập nhật chuyển động lắc lư của bảng tên dựa trên gió + nhạc
+            angle = Math.sin(Date.now() * 0.002 * (config.speedGio + 1)) * (config.speedGio * 3 + audioIntensity * 5);
+            board.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+
+            // 2. Cập nhật và vẽ các cánh hoa rơi
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // Khởi động vòng lặp và cập nhật thời gian định kỳ
+        animate();
+        capNhatAnhSang();
+        setInterval(capNhatAnhSang, 60000); // Cập nhật chế độ sáng tối mỗi phút
+    </script>
+</body>
+</html>
